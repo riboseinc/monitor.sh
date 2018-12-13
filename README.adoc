@@ -1,0 +1,58 @@
+= monitor.sh: reduce command output and protect against inactivity
+
+== Purpose
+
+This script is handy for situations that require output but is
+unable to handle too much output.
+
+A catch-22 situation like on Travis CI:
+
+* Travis terminates a job on over-logging: when output exceeds 4MB
+* Travis terminates a job on inactivity: when there has been no
+output for 10 minutes
+
+While this is reasonable, in certain situations, such as when
+processing a lot of objects, the command used (e.g. `aws`) do not
+provide any viable alternative that can satisfy these two conditions
+at the same time.
+
+So this script is useful in those situations.
+
+
+== Usage
+
+[source,console]
+----
+./monitor.sh <my-command> [--with-arguments <values>]
+----
+
+
+For example, this is how a site with over 40,000 objects gets
+uploaded to S3 (over 15 minutes) without getting terminated by
+Travis for inactivity or over-logging.
+
+[source,console]
+----
+./monitor.sh aws s3 sync _site s3://$S3_BUCKET_NAME \
+  --region=$AWS_REGION --delete --no-progress
+----
+
+
+
+== Mechanism
+
+This script does the following:
+
+. Spawns your specified command in the background.
+. Stores its PID and checks its existence every 1 second.
+. On every 10 seconds, it prints out a message indicating how long
+the command has been run.
+. When the command exits, it will print out a message indicating so.
+. Then the script exits.
+
+
+== License and copyright
+
+This code is licensed under 2-clause BSD.
+
+Copyright 2018 Ribose.
